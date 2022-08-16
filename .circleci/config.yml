@@ -2,6 +2,17 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+commands:
+   # Exercise - Rollback
+   destroy_environment:
+     steps:
+       - run:
+           name: Destroy environment
+           # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable 
+           # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID 
+           when: on_fail
+           command: |
+             aws cloudformation delete-stack --stack-name stack-create-bucket-${CIRCLE_WORKFLOW_ID:0:7}
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
@@ -21,6 +32,8 @@ jobs:
             --template-file bucket.yml \
             --stack-name stack-create-bucket-${CIRCLE_WORKFLOW_ID:0:7} \
             --parameter-overrides MyBucketName="mybucket-${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy_environment:
+          when: on_fail
     # Uncomment the step below if yoou wish to upload all contents of the current directory to the S3 bucket
       - run: aws s3 sync . s3://mybucket-${CIRCLE_WORKFLOW_ID:0:7} --delete 
 
@@ -72,7 +85,7 @@ jobs:
             export OldBucketID=$(cat ~/textfile.txt)
             aws s3 rm "s3://${OldBucketID}" --recursive          
 workflows:
-  say-hello-workflow:
+  my-cicd-workflow:
     jobs:
       - create_and_deploy_front_end
       - promote_to_production:
